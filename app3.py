@@ -49,13 +49,13 @@ def predict_sentiment(model, tokenizer, review):
     prediction = model.predict(padded, verbose=0)[0][0]  # single float in binary
 
     if prediction >= 0.5:
-        label = 1
-    else:
         label = 0
+    else:
+        label = 1
 
     sentiment_map = {
-        0: ("Negative", "😠", "red"),
-        1: ("Positive", "😊", "green")
+        1: ("Negative", "😠", "red"),
+        0: ("Positive", "😊", "green")
     }
 
     sentiment, emoji, color = sentiment_map[label]
