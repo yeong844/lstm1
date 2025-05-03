@@ -36,7 +36,7 @@ def load_model_and_tokenizer():
         return None, None
 
 # ======================
-# PREDICTION FUNCTION (Binary: Positive/Negative)
+# PREDICTION FUNCTION (Binary: Positive/Negative/Neutral)
 # ======================
 def clean_text(text):
     text = text.lower()
@@ -54,20 +54,23 @@ def predict_sentiment(model, tokenizer, review):
     # In the training script:
     # 1 = positive (stars >= 4)
     # 0 = negative (stars <= 2)
-    if prediction >= 0.5:
+    if prediction >= 0.7:
         label = 1  # Positive
-    else:
+    elif prediction <= 0.3:
         label = 0  # Negative
+    else:
+        label = 2  # Neutral
 
     sentiment_map = {
         0: ("Negative", "😠", "red"),
-        1: ("Positive", "😊", "green")
+        1: ("Positive", "😊", "green"),
+        2: ("Neutral", "😐", "gray")
     }
 
     sentiment, emoji, color = sentiment_map[label]
     
     # For confidence, use how far from 0.5 the prediction is
-    confidence = prediction if label == 1 else (1 - prediction)
+    confidence = prediction if label == 1 else (1 - prediction) if label == 0 else 0.5
     
     return {
         "sentiment": sentiment,
@@ -117,7 +120,8 @@ user_input = st.text_area(
 example_reviews = {
     "Select an example...": "",
     "Positive Example": "This coffee is amazing! Rich flavor and perfect aroma. I've been buying it for months and never disappointed.",
-    "Negative Example": "Terrible coffee experience. Bitter taste and stale beans. Will not purchase again."
+    "Negative Example": "Terrible coffee experience. Bitter taste and stale beans. Will not purchase again.",
+    "Neutral Example": "The coffee is okay, but not great. The flavor is fine, but nothing special."
 }
 
 selected_example = st.selectbox("Or try an example review:", list(example_reviews.keys()))
@@ -153,12 +157,14 @@ if analyze_button:
             st.caption(f"Confidence: {confidence:.1%}")
 
             st.subheader("Sentiment Breakdown")
-            col1, col2 = st.columns(2)
+            col1, col2, col3 = st.columns(3)
             
             with col1:
                 st.metric("Positive", f"{probability:.1%}")
             with col2:
                 st.metric("Negative", f"{(1-probability):.1%}")
+            with col3:
+                st.metric("Neutral", f"{(0.5 - abs(0.5 - probability)):.1%}")
 
             with st.expander("Preprocessing Details"):
                 st.write("**Original Text:**")
@@ -170,12 +176,13 @@ if analyze_button:
 # SIDEBAR INFORMATION
 # ======================
 st.sidebar.title("About")
-st.sidebar.info("""
+st.sidebar.info(""" 
 This app uses an LSTM model trained to classify sentiment for coffee product reviews.
 
 Sentiment Categories:
 - 😠 Negative (1-2 stars)
 - 😊 Positive (4-5 stars)
+- 😐 Neutral (3 stars)
 
 This tool can help coffee sellers understand customer feedback better.
 """)
@@ -184,7 +191,7 @@ st.sidebar.subheader("How It Works")
 st.sidebar.markdown("""
 1. You enter a coffee review text
 2. The model analyzes the sentiment
-3. Results show if the review is positive or negative
+3. Results show if the review is positive, negative, or neutral
 4. The confidence score shows how certain the prediction is
 """)
 
