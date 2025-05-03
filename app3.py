@@ -28,8 +28,8 @@ MAX_LEN = 100
 def load_model_and_tokenizer():
     try:
         # Load the updated model and tokenizer for multi-class classification
-        model = load_model("sentiment_lstm_v2.keras", compile=True)
-        tokenizer = joblib.load("tokenizer_v2.pkl")
+        model = load_model("sentiment_lstm_v3.keras", compile=True)
+        tokenizer = joblib.load("tokenizer_v3.pkl")
         return model, tokenizer
     except Exception as e:
         st.error(f"Failed to load model or tokenizer: {e}")
@@ -81,16 +81,16 @@ st.title("Coffee Review Sentiment Analyzer")
 st.write("Analyze the sentiment of coffee product reviews using a LSTM model.")
 
 file_status = st.empty()
-model_exists = os.path.exists("sentiment_lstm_v2.keras")
-tokenizer_exists = os.path.exists("tokenizer_v2.pkl")
+model_exists = os.path.exists("sentiment_lstm_v3.keras")
+tokenizer_exists = os.path.exists("tokenizer_v3.pkl")
 
 if not model_exists or not tokenizer_exists:
     file_status.error("⚠️ Model or tokenizer file missing!")
     missing_files = []
     if not model_exists:
-        missing_files.append("sentiment_lstm_v2.keras")
+        missing_files.append("sentiment_lstm_v3.keras")
     if not tokenizer_exists:
-        missing_files.append("tokenizer_v2.pkl")
+        missing_files.append("tokenizer_v3.pkl")
     
     st.info(f"""
     Please ensure these files are in the app directory:
