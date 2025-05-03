@@ -27,16 +27,16 @@ MAX_LEN = 100
 @st.cache_resource
 def load_model_and_tokenizer():
     try:
-        # Use the correct model filename from your training script
-        model = load_model("sentiment_lstm.keras", compile=True)
-        tokenizer = joblib.load("tokenizer.pkl")
+        # Load the updated model and tokenizer for multi-class classification
+        model = load_model("sentiment_lstm_v2.keras", compile=True)
+        tokenizer = joblib.load("tokenizer_v2.pkl")
         return model, tokenizer
     except Exception as e:
         st.error(f"Failed to load model or tokenizer: {e}")
         return None, None
 
 # ======================
-# PREDICTION FUNCTION (Binary: Positive/Negative/Neutral)
+# PREDICTION FUNCTION (Three Classes: Positive/Negative/Neutral)
 # ======================
 def clean_text(text):
     text = text.lower()
@@ -48,19 +48,12 @@ def predict_sentiment(model, tokenizer, review):
     sequence = tokenizer.texts_to_sequences([cleaned_review])
     padded = pad_sequences(sequence, maxlen=MAX_LEN, padding='post', truncating='post')
     
-    # Get raw prediction (this is a single value between 0 and 1 for binary classification)
-    prediction = float(model.predict(padded, verbose=0)[0][0])
+    # Get raw prediction (this is a probability for each of the 3 classes)
+    prediction = model.predict(padded, verbose=0)[0]
     
-    # In the training script:
-    # 1 = positive (stars >= 4)
-    # 0 = negative (stars <= 2)
-    if prediction >= 0.7:
-        label = 1  # Positive
-    elif prediction <= 0.3:
-        label = 0  # Negative
-    else:
-        label = 2  # Neutral
-
+    # Get the class with the highest probability (0: Negative, 1: Positive, 2: Neutral)
+    label = np.argmax(prediction)
+    
     sentiment_map = {
         0: ("Negative", "😠", "red"),
         1: ("Positive", "😊", "green"),
@@ -69,14 +62,14 @@ def predict_sentiment(model, tokenizer, review):
 
     sentiment, emoji, color = sentiment_map[label]
     
-    # For confidence, use how far from 0.5 the prediction is
-    confidence = prediction if label == 1 else (1 - prediction) if label == 0 else 0.5
+    # Confidence is the probability of the predicted class
+    confidence = prediction[label]
     
     return {
         "sentiment": sentiment,
         "emoji": emoji,
         "color": color,
-        "probability": prediction,
+        "probability": confidence,
         "confidence": float(confidence),  # Ensure it's a Python float
         "label": label
     }
@@ -88,16 +81,16 @@ st.title("Coffee Review Sentiment Analyzer")
 st.write("Analyze the sentiment of coffee product reviews using a LSTM model.")
 
 file_status = st.empty()
-model_exists = os.path.exists("sentiment_lstm.keras")
-tokenizer_exists = os.path.exists("tokenizer.pkl")
+model_exists = os.path.exists("sentiment_lstm_v2.keras")
+tokenizer_exists = os.path.exists("tokenizer_v2.pkl")
 
 if not model_exists or not tokenizer_exists:
     file_status.error("⚠️ Model or tokenizer file missing!")
     missing_files = []
     if not model_exists:
-        missing_files.append("sentiment_lstm.keras")
+        missing_files.append("sentiment_lstm_v2.keras")
     if not tokenizer_exists:
-        missing_files.append("tokenizer.pkl")
+        missing_files.append("tokenizer_v2.pkl")
     
     st.info(f"""
     Please ensure these files are in the app directory:
@@ -160,11 +153,11 @@ if analyze_button:
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                st.metric("Positive", f"{probability:.1%}")
+                st.metric("Positive", f"{(probability if label == 1 else 0):.1%}")
             with col2:
-                st.metric("Negative", f"{(1-probability):.1%}")
+                st.metric("Negative", f"{(probability if label == 0 else 0):.1%}")
             with col3:
-                st.metric("Neutral", f"{(0.5 - abs(0.5 - probability)):.1%}")
+                st.metric("Neutral", f"{(probability if label == 2 else 0):.1%}")
 
             with st.expander("Preprocessing Details"):
                 st.write("**Original Text:**")
